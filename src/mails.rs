@@ -1,36 +1,40 @@
-use lettre::smtp::authentication::{Credentials, Mechanism};
-use lettre::{EmailAddress, Envelope, SendableEmail, SmtpClient, Transport};
-use lettre_email::error::Error;
+use failure::{Fallible, ResultExt};
+use lettre::{smtp::authentication::Credentials, SmtpClient, Transport};
 use lettre_email::{Email, EmailBuilder};
-use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Config<'a> {
-    target: &'a str,
-    email: &'a str,
-    passwd: &'a str,
+pub struct Config {
+    pub target: String,
+    pub email: String,
+    pub passwd: String,
     #[serde(default)]
-    smtp: Cow<'a, str>,
+    pub smtp: String, // TODO defaults
 }
 
-pub fn send_mail(email: SendableEmail, config: &Config) {
-    let smtp: &str = &config.smtp;
-    let mut mailer = SmtpClient::new_simple(smtp)
-        .expect("Failed to create StmpClient")
-        .credentials(Credentials::new(
-            config.email.to_string(),
-            config.passwd.to_string(),
-        )).transport();
-
-    mailer.send(email).expect("Failed to send the e-mail");
-}
-
-pub struct CommandStatusMail {
+pub struct MailNotificationBuilder {
     pub url: String,
 }
 
-impl CommandStatusMail {
-    pub fn create_email(&self, config: &Config) -> Result<Email, Error> {
+impl MailNotificationBuilder {
+    pub fn send(&self, config: &Config) -> Fallible<()> {
+        let smtp: &str = &config.smtp;
+        let mut mailer = SmtpClient::new_simple(smtp)
+            .context("Failed to create StmpClient")?
+            .credentials(Credentials::new(
+                config.email.to_string(),
+                config.passwd.to_string(),
+            )).transport();
+
+        let email = self
+            .create_email(config)
+            .context("Error creating the e-mail")?;
+        mailer
+            .send(email.into())
+            .context("Failed to send the e-mail")?;
+        Ok(())
+    }
+
+    pub fn create_email(&self, config: &Config) -> Fallible<Email> {
         let body = format!(
             "A watched file has been changed: {}\n\
              Last-Modified: {}",
@@ -38,8 +42,8 @@ impl CommandStatusMail {
         );
 
         EmailBuilder::new()
-            .to(config.target)
-            .from(config.email)
+            .to(config.target.clone())
+            .from(config.email.clone())
             .subject("Remote file changed")
             .text(body)
             .build()

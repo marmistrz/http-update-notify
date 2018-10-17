@@ -6,7 +6,7 @@ authors = ["Marcin Mielniczuk <marmistrz.dev@zoho.eu>"]
 [dependencies]
 # current lettre doesn't support openssl 1.1.1
 lettre = {git = "https://github.com/lettre/lettre"}
-lettre_email = "0.8"
+lettre_email = {git = "https://github.com/lettre/lettre"}
 serde = "1"
 serde_derive = "1"
 toml = "0.4"
