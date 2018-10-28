@@ -2,15 +2,18 @@
 extern crate failure;
 extern crate lettre;
 extern crate lettre_email;
+extern crate reqwest;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
 
+mod check;
 mod mails;
 
+use check::check_url;
 use failure::{Fallible, ResultExt};
-use mails::{Config, MailNotificationBuilder};
+use mails::Config;
 use std::env;
 use std::fs::File;
 use std::io::Read;
@@ -39,7 +42,7 @@ fn get_config() -> Fallible<Config> {
         let mut s = config.email.split('@').skip(1);
         let domain = s
             .next()
-            .ok_or(format_err!("Invalid e-mail format: no domain"))?;
+            .ok_or_else(|| format_err!("Invalid e-mail format: no domain"))?;
         let smtp = "smtp.".to_string() + domain;
         eprintln!("Assuming smtp server: {}", smtp);
         config.smtp = smtp
@@ -49,11 +52,10 @@ fn get_config() -> Fallible<Config> {
 }
 
 fn run() -> Fallible<()> {
+    let url = env::args().nth(1).unwrap();
     let config = get_config()?;
-    let s = MailNotificationBuilder {
-        url: "abcd".to_string(),
-    };
-    s.send(&config)?;
-    eprintln!("E-mail sent!");
+    println!("Watching URL: {}", url);
+    let handle = check_url(config, url);
+    handle.join().unwrap();
     Ok(())
 }

@@ -1,5 +1,5 @@
 [package]
-name = "http-update-notify"
+name = "hun"
 version = "0.1.0"
 authors = ["Marcin Mielniczuk <marmistrz.dev@zoho.eu>"]
 
@@ -11,3 +11,4 @@ serde = "1"
 serde_derive = "1"
 toml = "0.4"
 failure = "0.1"
+reqwest = "0.9.3"

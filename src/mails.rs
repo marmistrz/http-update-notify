@@ -2,7 +2,7 @@ use failure::{Fallible, ResultExt};
 use lettre::{smtp::authentication::Credentials, SmtpClient, Transport};
 use lettre_email::{Email, EmailBuilder};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub target: String,
     pub email: String,
@@ -11,11 +11,11 @@ pub struct Config {
     pub smtp: String, // TODO defaults
 }
 
-pub struct MailNotificationBuilder {
-    pub url: String,
+pub struct MailNotificationBuilder<'a> {
+    pub url: &'a str,
 }
 
-impl MailNotificationBuilder {
+impl<'a> MailNotificationBuilder<'a> {
     pub fn send(&self, config: &Config) -> Fallible<()> {
         let smtp: &str = &config.smtp;
         let mut mailer = SmtpClient::new_simple(smtp)
