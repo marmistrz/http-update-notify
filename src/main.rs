@@ -6,8 +6,11 @@ extern crate reqwest;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate clap;
 extern crate toml;
 
+mod args;
 mod check;
 mod mails;
 
@@ -52,10 +55,13 @@ fn get_config() -> Fallible<Config> {
 }
 
 fn run() -> Fallible<()> {
-    let url = env::args().nth(1).unwrap();
+    let matches = args::get_parser().get_matches();
+    let poll_interval: u64 = matches.value_of("interval").unwrap().parse()?;
+    let url = matches.value_of("url").unwrap();
+
     let config = get_config()?;
-    println!("Watching URL: {}", url);
-    let handle = check_url(config, url);
+    println!("Watching URL: {}, poll interval: {}s", url, poll_interval);
+    let handle = check_url(config, url.into(), poll_interval);
     handle.join().unwrap();
     Ok(())
 }

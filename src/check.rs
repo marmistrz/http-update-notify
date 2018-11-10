@@ -15,11 +15,11 @@ fn get_last_modified(client: &Client, url: &str) -> Fallible<String> {
     Ok(date)
 }
 
-fn check_url_internal(config: &Config, url: &str) -> Fallible<()> {
+fn check_url_internal(config: &Config, url: &str, poll_interval: u64) -> Fallible<()> {
     let client = Client::new();
     let mut init_date = get_last_modified(&client, &url)?;
     loop {
-        thread::sleep(Duration::from_secs(1800));
+        thread::sleep(Duration::from_secs(poll_interval));
         let date = get_last_modified(&client, &url)?;
         if date != init_date {
             init_date = date;
@@ -30,6 +30,8 @@ fn check_url_internal(config: &Config, url: &str) -> Fallible<()> {
     }
 }
 
-pub fn check_url(config: Config, url: String) -> thread::JoinHandle<()> {
-    thread::spawn(move || check_url_internal(&config, &url).expect("an error happened"))
+pub fn check_url(config: Config, url: String, poll_interval: u64) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        check_url_internal(&config, &url, poll_interval).expect("an error happened")
+    })
 }
