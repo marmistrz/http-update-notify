@@ -5,6 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 fn get_last_modified(client: &Client, url: &str) -> Fallible<String> {
+    info!("Polling URL: {}", url);
     let head = client.head(url).send()?;
     let date = head
         .headers()
@@ -22,10 +23,14 @@ fn check_url_internal(config: &Config, url: &str, poll_interval: u64) -> Fallibl
         thread::sleep(Duration::from_secs(poll_interval));
         let date = get_last_modified(&client, &url)?;
         if date != init_date {
+            info!("The file was updated, sending a notification.");
             init_date = date;
-            let s = MailNotificationBuilder { url: &url };
+            let s = MailNotificationBuilder {
+                url: &url,
+                last_modified: &init_date,
+            };
             s.send(&config)?;
-            eprintln!("E-mail sent!");
+            info!("E-mail sent!");
         }
     }
 }

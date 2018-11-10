@@ -13,6 +13,7 @@ pub struct Config {
 
 pub struct MailNotificationBuilder<'a> {
     pub url: &'a str,
+    pub last_modified: &'a str,
 }
 
 impl<'a> MailNotificationBuilder<'a> {
@@ -38,7 +39,7 @@ impl<'a> MailNotificationBuilder<'a> {
         let body = format!(
             "A watched file has been changed: {}\n\
              Last-Modified: {}",
-            self.url, "placeholder"
+            self.url, self.last_modified
         );
 
         EmailBuilder::new()

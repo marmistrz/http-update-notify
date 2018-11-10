@@ -9,6 +9,9 @@ extern crate serde_derive;
 #[macro_use]
 extern crate clap;
 extern crate toml;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 mod args;
 mod check;
@@ -22,6 +25,7 @@ use std::fs::File;
 use std::io::Read;
 
 fn main() {
+    init_logger();
     if let Err(e) = run() {
         eprint!("error");
         for cause in e.iter_chain() {
@@ -32,10 +36,21 @@ fn main() {
     }
 }
 
+fn init_logger() {
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info")
+    }
+    env_logger::init();
+}
+
 fn get_config() -> Fallible<Config> {
     let path = env::current_dir().context("Failed to get current directory")?;
-    let config_file = path.join("config.toml");
-    let mut file = File::open(config_file).context("Failed to open configuration file")?;
+    let config_name = "hun.toml";
+    let config_file = path.join(config_name);
+    let mut file = File::open(config_file).context(format!(
+        "Failed to open configuration file: {}",
+        config_name
+    ))?;
     let mut cfgstr = String::new();
     file.read_to_string(&mut cfgstr)
         .context("Failed to read the configuration file")?;
@@ -60,7 +75,7 @@ fn run() -> Fallible<()> {
     let url = matches.value_of("url").unwrap();
 
     let config = get_config()?;
-    println!("Watching URL: {}, poll interval: {}s", url, poll_interval);
+    info!("Watching URL: {}, poll interval: {}s", url, poll_interval);
     let handle = check_url(config, url.into(), poll_interval);
     handle.join().unwrap();
     Ok(())
