@@ -17,12 +17,13 @@ mod args;
 mod check;
 mod mails;
 
-use check::check_url;
+use check::check_urls;
 use failure::{Fallible, ResultExt};
 use mails::Config;
 use std::env;
 use std::fs::File;
 use std::io::Read;
+use std::sync::Arc;
 
 fn main() {
     init_logger();
@@ -38,7 +39,7 @@ fn main() {
 
 fn init_logger() {
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "info")
+        env::set_var("RUST_LOG", "hun=info")
     }
     env_logger::init();
 }
@@ -62,7 +63,7 @@ fn get_config() -> Fallible<Config> {
             .next()
             .ok_or_else(|| format_err!("Invalid e-mail format: no domain"))?;
         let smtp = "smtp.".to_string() + domain;
-        eprintln!("Assuming smtp server: {}", smtp);
+        info!("Assuming smtp server: {}", smtp);
         config.smtp = smtp
     }
 
@@ -72,11 +73,14 @@ fn get_config() -> Fallible<Config> {
 fn run() -> Fallible<()> {
     let matches = args::get_parser().get_matches();
     let poll_interval: u64 = matches.value_of("interval").unwrap().parse()?;
-    let url = matches.value_of("url").unwrap();
+    let urls: Vec<_> = matches.values_of("url").unwrap().collect();
 
     let config = get_config()?;
-    info!("Watching URL: {}, poll interval: {}s", url, poll_interval);
-    let handle = check_url(config, url.into(), poll_interval);
-    handle.join().unwrap();
+    let config = Arc::new(config);
+    info!(
+        "Watching URLs: {:?}, poll interval: {}s",
+        urls, poll_interval
+    );
+    check_urls(&config, urls, poll_interval);
     Ok(())
 }

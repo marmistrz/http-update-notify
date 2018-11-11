@@ -1,6 +1,7 @@
-use failure::Fallible;
+use failure::{err_msg, Fallible};
 use mails::{Config, MailNotificationBuilder};
 use reqwest::Client;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -10,13 +11,13 @@ fn get_last_modified(client: &Client, url: &str) -> Fallible<String> {
     let date = head
         .headers()
         .get("Last-Modified")
-        .expect("File doesn't support Last-Modified")
+        .ok_or_else(|| err_msg("The URL doesn't support Last-Modified"))?
         .to_str()?
         .to_string();
     Ok(date)
 }
 
-fn check_url_internal(config: &Config, url: &str, poll_interval: u64) -> Fallible<()> {
+fn check_url_internal(config: &Arc<Config>, url: &str, poll_interval: u64) -> Fallible<()> {
     let client = Client::new();
     let mut init_date = get_last_modified(&client, &url)?;
     loop {
@@ -35,8 +36,20 @@ fn check_url_internal(config: &Config, url: &str, poll_interval: u64) -> Fallibl
     }
 }
 
-pub fn check_url(config: Config, url: String, poll_interval: u64) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        check_url_internal(&config, &url, poll_interval).expect("an error happened")
-    })
+pub fn check_urls(config: &Arc<Config>, urls: Vec<&str>, poll_interval: u64) {
+    let mut handles = vec![];
+    for url in urls {
+        let config = Arc::clone(config);
+        let url = url.to_owned();
+
+        let handle = thread::spawn(move || {
+            check_url_internal(&config, &url, poll_interval)
+                .unwrap_or_else(|err| error!("{}: {}", url, err));
+        });
+
+        handles.push(handle);
+    }
+    for handle in handles {
+        handle.join().unwrap();
+    }
 }
