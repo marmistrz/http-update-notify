@@ -24,7 +24,12 @@ fn check_url_internal(config: &Arc<Config>, url: &str, poll_interval: u64) -> Fa
         thread::sleep(Duration::from_secs(poll_interval));
         let date = get_last_modified(&client, &url)?;
         if date != init_date {
-            info!("The file was updated, sending a notification.");
+            info!(
+                "The file was updated, sending a notification. \
+                 Previous modification date: {}. \
+                 Current modification date: {}",
+                init_date, date
+            );
             init_date = date;
             let s = MailNotificationBuilder {
                 url: &url,
@@ -32,6 +37,8 @@ fn check_url_internal(config: &Arc<Config>, url: &str, poll_interval: u64) -> Fa
             };
             s.send(&config)?;
             info!("E-mail sent!");
+        } else {
+            info!("File unchanged, last modifictaion date: {}", init_date);
         }
     }
 }
