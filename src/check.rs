@@ -1,9 +1,31 @@
+use actix::prelude::*;
 use failure::{err_msg, Fallible};
 use mails::{Config, MailNotificationBuilder};
 use reqwest::Client;
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use std::{sync::Arc, thread, time::Duration};
+
+/// Actor
+pub struct FileWatcher {
+    url: String,
+}
+
+impl FileWatcher {
+    pub fn new(url: String) -> Self {
+        Self { url }
+    }
+}
+
+/// Declare actor and its context
+impl Actor for FileWatcher {
+    type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Context<Self>) {
+        // add stream
+        ctx.run_interval(Duration::from_secs(1), |act, _ctx| {
+            println!("Hello, {}!", act.url);
+        });
+    }
+}
 
 fn get_last_modified(client: &Client, url: &str) -> Fallible<String> {
     info!("Polling URL: {}", url);

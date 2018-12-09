@@ -1,3 +1,6 @@
+/*extern crate actix;
+extern crate futures;
+extern crate tokio;
 #[macro_use]
 extern crate failure;
 extern crate lettre;
@@ -13,17 +16,65 @@ extern crate toml;
 extern crate log;
 extern crate env_logger;
 
+use actix::prelude::*;
+use futures::Future;
+use std::time::Duration;
+
+/// Actor
+struct WatchedFile {
+    url: String,
+}
+
 mod args;
 mod check;
 mod mails;
 
-use check::check_urls;
+/// Declare actor and its context
+impl Actor for WatchedFile {
+    type Context = Context<Self>;
+
+    fn started(&mut self, ctx: &mut Context<Self>) {
+        // add stream
+        let addr = ctx.address();
+        ctx.run_interval(Duration::from_secs(1), |act, _ctx| {
+            println!("Hello, {}!", act.url);
+        });
+    }
+}
+
+fn main() {
+    // start system, this is required step
+    System::run(|| {
+        // start new actor
+        let _addr = WatchedFile { url: "foo".into() }.start();
+    });
+}*/
+
+#[macro_use]
+extern crate failure;
+extern crate lettre;
+extern crate lettre_email;
+extern crate reqwest;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate clap;
+extern crate toml;
+#[macro_use]
+extern crate log;
+extern crate actix;
+extern crate env_logger;
+
+mod args;
+mod check;
+mod mails;
+
+use actix::prelude::*;
+use check::FileWatcher;
 use failure::{Fallible, ResultExt};
 use mails::Config;
-use std::env;
-use std::fs::File;
-use std::io::Read;
-use std::sync::Arc;
+use std::{env, fs::File, io::Read, sync::Arc};
 
 fn main() {
     init_logger();
@@ -81,6 +132,11 @@ fn run() -> Fallible<()> {
         "Watching URLs: {:?}, poll interval: {}s",
         urls, poll_interval
     );
-    check_urls(&config, urls, poll_interval);
+
+    System::run(|| {
+        // start new actor
+        let _addr = FileWatcher::new("foo".into()).start();
+    });
+
     Ok(())
 }

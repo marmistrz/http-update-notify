@@ -14,7 +14,8 @@ pub fn get_parser<'a, 'b>() -> App<'a, 'b> {
                 .required(true)
                 .takes_value(true)
                 .help("Set the poll interval (in seconds)"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("url")
                 .short("u")
                 .long("url")
