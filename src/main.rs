@@ -1,25 +1,20 @@
 #[macro_use]
 extern crate failure;
-extern crate lettre;
-extern crate lettre_email;
-extern crate reqwest;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
-extern crate toml;
+use toml;
 #[macro_use]
 extern crate log;
-extern crate env_logger;
+use env_logger;
 
 mod args;
 mod check;
 mod mails;
 
-use crate::check::check_urls;
+use crate::{check::check_urls, mails::Config};
 use failure::{Fallible, ResultExt};
-use crate::mails::Config;
 use std::{env, fs::File, io::Read, sync::Arc};
 
 fn main() {
