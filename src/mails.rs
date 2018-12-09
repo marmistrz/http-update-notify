@@ -24,7 +24,8 @@ impl<'a> MailNotificationBuilder<'a> {
             .credentials(Credentials::new(
                 config.email.to_string(),
                 config.passwd.to_string(),
-            )).transport();
+            ))
+            .transport();
 
         let email = self
             .create_email(config)

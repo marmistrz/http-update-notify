@@ -20,10 +20,7 @@ mod mails;
 use check::check_urls;
 use failure::{Fallible, ResultExt};
 use mails::Config;
-use std::env;
-use std::fs::File;
-use std::io::Read;
-use std::sync::Arc;
+use std::{env, fs::File, io::Read, sync::Arc};
 
 fn main() {
     init_logger();

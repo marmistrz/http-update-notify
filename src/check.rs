@@ -1,9 +1,7 @@
 use failure::{err_msg, Fallible};
 use mails::{Config, MailNotificationBuilder};
 use reqwest::Client;
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use std::{sync::Arc, thread, time::Duration};
 
 fn get_last_modified(client: &Client, url: &str) -> Fallible<String> {
     info!("Polling URL: {}", url);
