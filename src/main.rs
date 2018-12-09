@@ -17,9 +17,9 @@ mod args;
 mod check;
 mod mails;
 
-use check::check_urls;
+use crate::check::check_urls;
 use failure::{Fallible, ResultExt};
-use mails::Config;
+use crate::mails::Config;
 use std::{env, fs::File, io::Read, sync::Arc};
 
 fn main() {

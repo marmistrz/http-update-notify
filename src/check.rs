@@ -1,5 +1,5 @@
 use failure::{err_msg, Fallible};
-use mails::{Config, MailNotificationBuilder};
+use crate::mails::{Config, MailNotificationBuilder};
 use reqwest::Client;
 use std::{sync::Arc, thread, time::Duration};
 

@@ -2,6 +2,7 @@
 name = "hun"
 version = "0.1.1"
 authors = ["Marcin Mielniczuk <marmistrz.dev@zoho.eu>"]
+edition = "2018"
 
 [dependencies]
 # current lettre doesn't support openssl 1.1.1
