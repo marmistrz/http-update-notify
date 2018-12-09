@@ -125,17 +125,19 @@ fn run() -> Fallible<()> {
     let matches = args::get_parser().get_matches();
     let poll_interval: u64 = matches.value_of("interval").unwrap().parse()?;
     let urls: Vec<_> = matches.values_of("url").unwrap().collect();
+    warn!("WIP only first url");
+    let url = urls[0].to_string();
 
     let config = get_config()?;
-    let config = Arc::new(config);
     info!(
         "Watching URLs: {:?}, poll interval: {}s",
         urls, poll_interval
     );
 
-    System::run(|| {
+    System::run(move || {
         // start new actor
-        let _addr = FileWatcher::new("foo".into()).start();
+        // TODO handle all urls
+        let _addr = FileWatcher::new(url, config, poll_interval).start();
     });
 
     Ok(())

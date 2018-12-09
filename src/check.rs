@@ -6,12 +6,34 @@ use std::{sync::Arc, thread, time::Duration};
 
 /// Actor
 pub struct FileWatcher {
-    url: String,
+    urls: String,
+    config: Config,
+    interval: u64,
+    // todo init in new
+    last_modified: Option<String>,
 }
 
 impl FileWatcher {
-    pub fn new(url: String) -> Self {
-        Self { url }
+    pub fn new(urls: String, config: Config, interval: u64) -> Self {
+        Self {
+            urls,
+            config,
+            interval,
+            last_modified: None,
+        }
+    }
+
+    fn check(&mut self) -> Fallible<()> {
+        let client = Client::new();
+
+        // need NLL, rust 2018, later FIXME FIXME
+        if let Some(last) = self.last_modified.clone() {
+            let new_date = get_last_modified(&client, &self.urls)
+        } else {
+            let date = get_last_modified(&client, &self.urls)?;
+            self.last_modified = Some(date);
+        }
+        Ok(())
     }
 }
 
@@ -22,7 +44,9 @@ impl Actor for FileWatcher {
     fn started(&mut self, ctx: &mut Context<Self>) {
         // add stream
         ctx.run_interval(Duration::from_secs(1), |act, _ctx| {
-            println!("Hello, {}!", act.url);
+            println!("Hello, {}!", act.urls);
+            let res = act.check();
+            println!("{:?}", res);
         });
     }
 }
@@ -39,7 +63,7 @@ fn get_last_modified(client: &Client, url: &str) -> Fallible<String> {
     Ok(date)
 }
 
-fn check_url_internal(config: &Arc<Config>, url: &str, poll_interval: u64) -> Fallible<()> {
+fn check_url_internal(config: &Config, url: &str, poll_interval: u64) -> Fallible<()> {
     let client = Client::new();
     let mut init_date = get_last_modified(&client, &url)?;
     loop {
