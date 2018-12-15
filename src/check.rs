@@ -1,5 +1,5 @@
-use failure::{err_msg, Fallible};
 use crate::mails::{Config, MailNotificationBuilder};
+use failure::{err_msg, Fallible};
 use reqwest::Client;
 use std::{sync::Arc, thread, time::Duration};
 
@@ -41,11 +41,10 @@ fn check_url_internal(config: &Arc<Config>, url: &str, poll_interval: u64) -> Fa
     }
 }
 
-pub fn check_urls(config: &Arc<Config>, urls: Vec<&str>, poll_interval: u64) {
+pub fn check_urls(config: &Arc<Config>, urls: Vec<String>, poll_interval: u64) {
     let mut handles = vec![];
     for url in urls {
         let config = Arc::clone(config);
-        let url = url.to_owned();
 
         let handle = thread::spawn(move || {
             check_url_internal(&config, &url, poll_interval)

@@ -2,18 +2,17 @@
 extern crate failure;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate clap;
 use toml;
 #[macro_use]
 extern crate log;
 use env_logger;
+use structopt::StructOpt;
 
 mod args;
 mod check;
 mod mails;
 
-use crate::{check::check_urls, mails::Config};
+use crate::{args::Opt, check::check_urls, mails::Config};
 use failure::{Fallible, ResultExt};
 use std::{env, fs::File, io::Read, sync::Arc};
 
@@ -63,16 +62,14 @@ fn get_config() -> Fallible<Config> {
 }
 
 fn run() -> Fallible<()> {
-    let matches = args::get_parser().get_matches();
-    let poll_interval: u64 = matches.value_of("interval").unwrap().parse()?;
-    let urls: Vec<_> = matches.values_of("url").unwrap().collect();
+    let opt = Opt::from_args();
 
     let config = get_config()?;
     let config = Arc::new(config);
     info!(
         "Watching URLs: {:?}, poll interval: {}s",
-        urls, poll_interval
+        opt.urls, opt.interval
     );
-    check_urls(&config, urls, poll_interval);
+    check_urls(&config, opt.urls, opt.interval);
     Ok(())
 }
