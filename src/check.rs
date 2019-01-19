@@ -1,6 +1,6 @@
 use crate::mails::{Config, MailNotificationBuilder};
 use actix::prelude::*;
-use actix_web::{client, client::ClientResponse};
+use actix_web::{client, client::ClientResponse, HttpMessage};
 use failure::{err_msg, Fallible, ResultExt};
 use futures::future::Future;
 use reqwest::Client;
@@ -26,10 +26,13 @@ impl FileWatcher {
         }
     }
 
-    fn check(&mut self) -> Fallible<()> {
-        let _a = get_last_modified(&self.urls);
+    fn check(&mut self) {
+        let future = get_last_modified(&self.urls).map(|s| {
+            info!("Last-modified is: {}", s);
+        });
+        Arbiter::spawn(future);
         //.map_err(|e| error!("Error polling {}: {}", &self.urls, e.)); // FIXME error handling;
-        Ok(())
+
     }
 }
 
@@ -41,13 +44,12 @@ impl Actor for FileWatcher {
         // add stream
         ctx.run_interval(Duration::from_secs(1), |act, _ctx| {
             println!("Hello, {}!", act.urls);
-            let res = act.check();
-            println!("{:?}", res);
+            act.check();
         });
     }
 }
 
-fn get_last_modified(url: &str) -> impl Future<Item = ()> {
+fn get_last_modified(url: &str) -> impl Future<Item = String, Error = ()> {
     info!("Polling URL: {}", url);
     client::head(url)
         .finish()
@@ -55,9 +57,13 @@ fn get_last_modified(url: &str) -> impl Future<Item = ()> {
         .send()
         .map_err(|e| error!("Error polling: {}", e)) // FIXME error handling - we should move it out of this function or print the url
         .and_then(|resp: ClientResponse| {
-            println!("xD!");
-            println!("Status : {}", resp.status());
-            Ok(())
+            if let Some(last_mod) = resp.headers().get("last-modified") {
+                let s = last_mod.to_str().expect("to_str failed").to_string();
+                Ok(s)
+            } else {
+                error!("The URL doesn't support last-modified");
+                Err(())
+            }
         })
 }
 
