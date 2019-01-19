@@ -5,6 +5,6 @@ use structopt::StructOpt;
 pub struct Opt {
     #[structopt(short = "i", long = "interval", help = "Poll interval in seconds")]
     pub interval: u64,
-    #[structopt(short = "u", long = "url")]
+    #[structopt(short = "u", long = "url", required = true)]
     pub urls: Vec<String>,
 }

@@ -12,7 +12,8 @@ mod args;
 mod check;
 mod mails;
 
-use crate::{args::Opt, check::check_urls, mails::Config};
+use crate::{args::Opt, check::FileWatcher, mails::Config};
+use actix::prelude::*;
 use failure::{Fallible, ResultExt};
 use std::{env, fs::File, io::Read, sync::Arc};
 
@@ -70,6 +71,22 @@ fn run() -> Fallible<()> {
         "Watching URLs: {:?}, poll interval: {}s",
         opt.urls, opt.interval
     );
-    check_urls(&config, opt.urls, opt.interval);
+    warn!("WIP only first url");
+    let url = opt.urls[0].to_string();
+
+    let config = get_config()?;
+    //let config = Arc::new(config);
+    /*info!(
+        "Watching URLs: {:?}, poll interval: {}s",
+        urls, poll_interval
+    );*/
+    //check_urls(&config, urls, poll_interval);
+
+    System::run(move || {
+        // start new actor
+        // TODO handle all urls
+        let _addr = FileWatcher::new(url, config, opt.interval).start();
+    });
+
     Ok(())
 }
