@@ -2,9 +2,9 @@ use crate::mails::{Config, MailNotificationBuilder};
 use actix::prelude::*;
 use actix_web::{client, client::ClientResponse, HttpMessage};
 use failure::{err_msg, Fallible, ResultExt};
-use futures::future::Future;
 use reqwest::Client;
 use std::{sync::Arc, thread, time::Duration};
+use futures::prelude::*;
 
 
 /// Actor
@@ -26,13 +26,14 @@ impl FileWatcher {
         }
     }
 
-    fn check(&mut self) {
+    fn check(&mut self, ctx : &mut <Self as Actor>::Context) {
         let future = get_last_modified(&self.urls).map(|s| {
             info!("Last-modified is: {}", s);
-        });
-        Arbiter::spawn(future);
-        //.map_err(|e| error!("Error polling {}: {}", &self.urls, e.)); // FIXME error handling;
+        })
+        .into_actor(self)
+        .map_err(|e, act, _ctx| error!("Error polling {}: {}", &act.urls, e)); // FIXME error handling;
 
+        ctx.spawn(future);
     }
 }
 
@@ -42,27 +43,28 @@ impl Actor for FileWatcher {
 
     fn started(&mut self, ctx: &mut Context<Self>) {
         // add stream
-        ctx.run_interval(Duration::from_secs(1), |act, _ctx| {
+        ctx.run_interval(Duration::from_secs(1), |act, ctx| {
             println!("Hello, {}!", act.urls);
-            act.check();
+            act.check(ctx);
         });
     }
 }
 
-fn get_last_modified(url: &str) -> impl Future<Item = String, Error = ()> {
+fn get_last_modified(url: &str) -> impl Future<Item = String, Error = actix_web::Error> {
     info!("Polling URL: {}", url);
     client::head(url)
         .finish()
-        .expect("Error building the HEAD request") // FIXME error handling
-        .send()
-        .map_err(|e| error!("Error polling: {}", e)) // FIXME error handling - we should move it out of this function or print the url
+        .into_future()
+        .and_then(|req| req.send().from_err())
+        .map_err(actix_web::Error::into)
+        //.map_err(|e| error!("Error polling: {}", e)) // FIXME error handling - we should move it out of this function or print the url
         .and_then(|resp: ClientResponse| {
             if let Some(last_mod) = resp.headers().get("last-modified") {
                 let s = last_mod.to_str().expect("to_str failed").to_string();
                 Ok(s)
             } else {
                 error!("The URL doesn't support last-modified");
-                Err(())
+                Ok("".to_string())
             }
         })
 }
